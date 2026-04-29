@@ -15,6 +15,12 @@ const Hero = () => {
   const router = useRouter()
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [assemblyModalOpen, setAssemblyModalOpen] = useState(false)
+  const [fabData, setFabData] = useState({
+    layers: '2',
+    quantity: 5,
+    width: 50,
+    height: 40
+  })
 
   const handleCreateProject = () => {
     setAssemblyModalOpen(true)
@@ -147,7 +153,11 @@ const Hero = () => {
                         <div className="space-y-6 flex-1">
                           <div className="group">
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 group-hover:text-primary transition-colors">Layers</label>
-                            <select defaultValue="2 Layers" className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm cursor-pointer appearance-none text-sm">
+                            <select 
+                              value={fabData.layers + ' Layers'} 
+                              onChange={(e) => setFabData(prev => ({ ...prev, layers: e.target.value.split(' ')[0] }))}
+                              className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm cursor-pointer appearance-none text-sm"
+                            >
                               <option>1 Layer</option>
                               <option>2 Layers</option>
                               <option>4 Layers</option>
@@ -157,21 +167,36 @@ const Hero = () => {
                           </div>
                           <div className="group">
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 group-hover:text-primary transition-colors">Quantity (Boards)</label>
-                            <input type="number" defaultValue={5} className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-sm" />
+                            <input 
+                              type="number" 
+                              value={fabData.quantity} 
+                              onChange={(e) => setFabData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                              className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-sm" 
+                            />
                           </div>
                           <div className="group">
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3 group-hover:text-primary transition-colors">Dimensions (mm)</label>
                             <div className="flex gap-4 items-center">
-                              <input type="number" defaultValue={50} className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-center text-sm" />
+                              <input 
+                                type="number" 
+                                value={fabData.width} 
+                                onChange={(e) => setFabData(prev => ({ ...prev, width: parseInt(e.target.value) }))}
+                                className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-center text-sm" 
+                              />
                               <span className="text-gray-300 font-black">×</span>
-                              <input type="number" defaultValue={40} className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-center text-sm" />
+                              <input 
+                                type="number" 
+                                value={fabData.height} 
+                                onChange={(e) => setFabData(prev => ({ ...prev, height: parseInt(e.target.value) }))}
+                                className="w-full bg-white border border-gray-200 rounded-[24px] px-6 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none text-gray-900 font-bold transition-all shadow-sm text-center text-sm" 
+                              />
                             </div>
                           </div>
                         </div>
 
                         <div className="pt-6 mt-auto">
                           <Link
-                            href="/quote"
+                            href={`/quote?layers=${fabData.layers}&quantity=${fabData.quantity}&width=${fabData.width}&height=${fabData.height}`}
                             className="w-full py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 group hover:scale-[1.02] active:scale-95 hover:bg-orange-600"
                           >
                             Instant Quote

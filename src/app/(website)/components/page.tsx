@@ -8,30 +8,42 @@ import {
    Filter, LayoutGrid
 } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
-import { ClientOnly } from '@/components/ClientOnly'
+
+const ProductSkeleton = () => (
+   <div className="flex flex-col items-center bg-gray-50/50 p-5 rounded-[35px] border border-gray-100 animate-pulse">
+      <div className="relative w-full aspect-[4/3] rounded-[24px] overflow-hidden mb-6 bg-gray-200" />
+      <div className="w-20 h-3 bg-gray-200 rounded-full mb-3" />
+      <div className="w-3/4 h-5 bg-gray-200 rounded-full mb-4" />
+      <div className="w-1/2 h-3 bg-gray-200 rounded-full mb-6" />
+      <div className="w-24 h-6 bg-gray-200 rounded-full" />
+   </div>
+)
+
+const CategorySkeleton = () => (
+   <div className="flex items-center justify-between p-6 rounded-[24px] bg-gray-50 border border-gray-100 animate-pulse">
+      <div className="space-y-2">
+         <div className="w-32 h-4 bg-gray-200 rounded-full" />
+         <div className="w-16 h-3 bg-gray-200 rounded-full" />
+      </div>
+      <div className="w-10 h-10 rounded-full bg-gray-200" />
+   </div>
+)
 
 const ShopPage = () => {
    const { addItem, cartCount } = useCart()
-   const [popularIndex, setPopularIndex] = useState(0)
    const [addedItems, setAddedItems] = useState<Record<string, boolean>>({})
 
-   const [categories, setCategories] = useState([
-      { name: 'Microcontrollers', count: 1240 },
-      { name: 'Passive Components', count: 8500 },
-      { name: 'Integrated Circuits', count: 4200 },
-      { name: 'Modules & Boards', count: 960 },
-      { name: 'Connectors & Cables', count: 2100 },
-      { name: 'Power Management', count: 1800 },
-      { name: 'Sensors & Wireless', count: 1100 },
-      { name: 'Tools & Storage', count: 450 }
-   ])
+   const [categories, setCategories] = useState<any[]>([])
+   const [products, setProducts] = useState<any[]>([])
+   const [loadingProducts, setLoadingProducts] = useState(true)
+   const [loadingCategories, setLoadingCategories] = useState(true)
 
    React.useEffect(() => {
+      setLoadingCategories(true)
       fetch('/api/categories?limit=100')
          .then(res => res.json())
          .then(async data => {
             if (data.docs && data.docs.length > 0) {
-               // Dynamically fetch the product count for each category
                const dynamicCategories = await Promise.all(data.docs.map(async (cat: any) => {
                   try {
                      const res = await fetch(`/api/products?where[category][equals]=${cat.id}&limit=0`);
@@ -45,6 +57,7 @@ const ShopPage = () => {
             }
          })
          .catch(err => console.error('Error fetching categories:', err))
+         .finally(() => setLoadingCategories(false))
    }, [])
 
    interface Product {
@@ -72,9 +85,9 @@ const ShopPage = () => {
       image?: MediaDoc | null;
    };
 
-   const [products, setProducts] = useState<Product[]>([])
 
    React.useEffect(() => {
+      setLoadingProducts(true)
       // Fetch Products
       fetch('/api/products?depth=1&limit=50')
          .then(res => res.json())
@@ -112,6 +125,7 @@ const ShopPage = () => {
             }
          })
          .catch(err => console.error('Error fetching products:', err))
+         .finally(() => setLoadingProducts(false))
    }, [])
 
    const handleAddToCart = (e: React.MouseEvent, p: any) => {
@@ -175,17 +189,21 @@ const ShopPage = () => {
                         <h3 className="text-2xl font-black uppercase tracking-[0.2em] text-gray-950 italic">Product Categories</h3>
                      </div>
                      <nav className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {categories.map((cat, i) => (
-                           <Link href={`/components/category/${cat.id}`} key={i} className="group flex items-center justify-between p-6 rounded-[24px] bg-white border border-gray-100 hover:border-primary/30 transition-all hover:shadow-xl hover:-translate-y-1 active:scale-95">
-                              <div className="flex flex-col items-start gap-1">
-                                 <span className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors">{cat.name}</span>
-                                 <span className="text-xs font-black text-gray-400">{cat.count} Items</span>
-                              </div>
-                              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                                 <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-all group-hover:translate-x-1" />
-                              </div>
-                           </Link>
-                        ))}
+                        {loadingCategories ? (
+                           Array(8).fill(0).map((_, i) => <CategorySkeleton key={i} />)
+                        ) : (
+                           categories.map((cat, i) => (
+                              <Link href={`/components/category/${cat.id}`} key={i} className="group flex items-center justify-between p-6 rounded-[24px] bg-white border border-gray-100 hover:border-primary/30 transition-all hover:shadow-xl hover:-translate-y-1 active:scale-95">
+                                 <div className="flex flex-col items-start gap-1">
+                                    <span className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors">{cat.name}</span>
+                                    <span className="text-xs font-black text-gray-400">{cat.count} Items</span>
+                                 </div>
+                                 <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-all group-hover:translate-x-1" />
+                                 </div>
+                              </Link>
+                           ))
+                        )}
                      </nav>
                   </div>
                </div>
@@ -203,43 +221,47 @@ const ShopPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pt-4">
-                     {products.map((p, pIdx) => (
-                        <Link href={`/components/${p.id}`} key={pIdx} className="group flex flex-col items-center bg-white p-5 rounded-[35px] border border-gray-100 hover:border-primary/20 hover:shadow-2xl hover:-translate-y-1 transition-all flex-1 cursor-pointer">
-                           <div className="relative w-full aspect-[4/3] rounded-[24px] overflow-hidden mb-6 bg-gray-50 flex items-center justify-center">
-                              <Image
-                                 src={p.img}
-                                 alt={p.name}
-                                 fill
-                                 className="object-contain p-6 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
-                                 unoptimized
-                              />
-                              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase text-emerald-600 border border-emerald-100 shadow-sm flex items-center gap-1">
-                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> IN STOCK
-                              </div>
-                              <button
-                                 className="absolute bottom-3 right-3 w-10 h-10 flex items-center justify-center bg-primary text-white rounded-[16px] shadow-xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:scale-110 active:scale-95 z-10"
-                                 onClick={(e) => handleAddToCart(e, p)}
-                              >
-                                 {addedItems[p.id] ? <ShoppingCart className="w-4 h-4 fill-current" /> : <ShoppingCart className="w-4 h-4" />}
-                              </button>
-                           </div>
-                           <div className="text-center w-full grow flex flex-col">
-                              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 block">{p.brand}</span>
-                              <h4 className="text-sm font-black text-gray-950 mb-3 truncate px-2 group-hover:text-primary transition-colors">{p.name}</h4>
-                              <div className="flex items-center justify-center gap-1 mb-5">
-                                 <div className="flex text-orange-400 gap-0.5">
-                                    {[1,2,3,4,5].map(star => (
-                                       <Star key={star} className={`w-3 h-3 ${p.rating >= star ? 'fill-current' : 'text-gray-200 fill-gray-200'}`} />
-                                    ))}
+                     {loadingProducts ? (
+                        Array(10).fill(0).map((_, i) => <ProductSkeleton key={i} />)
+                     ) : (
+                        products.map((p, pIdx) => (
+                           <Link href={`/components/${p.id}`} key={pIdx} className="group flex flex-col items-center bg-white p-5 rounded-[35px] border border-gray-100 hover:border-primary/20 hover:shadow-2xl hover:-translate-y-1 transition-all flex-1 cursor-pointer">
+                              <div className="relative w-full aspect-[4/3] rounded-[24px] overflow-hidden mb-6 bg-gray-50 flex items-center justify-center">
+                                 <Image
+                                    src={p.img}
+                                    alt={p.name}
+                                    fill
+                                    className="object-contain p-6 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                                    unoptimized
+                                 />
+                                 <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase text-emerald-600 border border-emerald-100 shadow-sm flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> IN STOCK
                                  </div>
-                                 <span className="text-[10px] font-black text-gray-400 ml-1">({p.rating})</span>
+                                 <button
+                                    className="absolute bottom-3 right-3 w-10 h-10 flex items-center justify-center bg-primary text-white rounded-[16px] shadow-xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:scale-110 active:scale-95 z-10"
+                                    onClick={(e) => handleAddToCart(e, p)}
+                                 >
+                                    {addedItems[p.id] ? <ShoppingCart className="w-4 h-4 fill-current" /> : <ShoppingCart className="w-4 h-4" />}
+                                 </button>
                               </div>
-                              <div className="mt-auto">
-                                 <p className="text-lg font-black text-gray-900 tracking-tighter mb-2">{p.price}</p>
+                              <div className="text-center w-full grow flex flex-col">
+                                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 block">{p.brand}</span>
+                                 <h4 className="text-sm font-black text-gray-950 mb-3 truncate px-2 group-hover:text-primary transition-colors">{p.name}</h4>
+                                 <div className="flex items-center justify-center gap-1 mb-5">
+                                    <div className="flex text-orange-400 gap-0.5">
+                                       {[1,2,3,4,5].map(star => (
+                                          <Star key={star} className={`w-3 h-3 ${p.rating >= star ? 'fill-current' : 'text-gray-200 fill-gray-200'}`} />
+                                       ))}
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-400 ml-1">({p.rating})</span>
+                                 </div>
+                                 <div className="mt-auto">
+                                    <p className="text-lg font-black text-gray-900 tracking-tighter mb-2">{p.price}</p>
+                                 </div>
                               </div>
-                           </div>
-                        </Link>
-                     ))}
+                           </Link>
+                        ))
+                     )}
                   </div>
                </section>
             </div>

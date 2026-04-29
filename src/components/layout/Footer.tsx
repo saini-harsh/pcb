@@ -7,6 +7,7 @@ import {
   Phone, Mail, Clock, Calendar, CreditCard, Banknote, Wallet, Truck, Ship,
   ShieldCheck, HelpCircle, FileText, Settings, Factory, Layout, Zap, Cpu, Box
 } from 'lucide-react'
+import { ClientOnly } from '../ClientOnly'
 
 const Footer = () => {  
   const pathname = usePathname()
@@ -165,7 +166,7 @@ const Footer = () => {
         {/* Legal Bottom Bar */}
         <div className="flex flex-col xl:flex-row justify-between items-center gap-8 border-t border-gray-50 pt-8">
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-center">
-            <span>Copyright © {currentYear} PCB GLOBE</span>
+            <span>Copyright © <ClientOnly>{currentYear}</ClientOnly> PCB GLOBE</span>
             <span className="hidden sm:inline w-1 h-1 bg-gray-300 rounded-full" />
             <span>
               Design and promoted by <a href="https://www.24digitalindia.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-primary transition-colors underline decoration-gray-300 hover:decoration-primary/30 underline-offset-4">24Digitalindia</a>

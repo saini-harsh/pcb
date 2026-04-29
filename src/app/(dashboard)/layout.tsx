@@ -19,7 +19,7 @@ export default function DashboardLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <CartProvider>
         <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
-          <body className="min-h-full bg-background text-foreground selection:bg-primary/20">
+          <body className="min-h-full bg-background text-foreground selection:bg-primary/20" suppressHydrationWarning>
             <DashboardAuthGate>{children}</DashboardAuthGate>
           </body>
         </html>

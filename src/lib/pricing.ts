@@ -1,3 +1,7 @@
+import ratesData from './rates.json'
+
+const rates: Record<number, any[]> = ratesData
+
 export type PCBSpecs = {
   width: number
   height: number
@@ -24,60 +28,58 @@ export type PricingResult = {
   currency: string
 }
 
+
+
 export const calculatePrice = (specs: PCBSpecs): PricingResult => {
   const { width, height, layers, quantity, buildTime, finish, copperThickness } = specs
-  const area = width * height // in mm^2
+  const sqmtr = (width * height * quantity) / 1000000
+    
+  let baseSubTotal = 0
+  let nreCost = 0
   
-  // Base cost per layer factor in INR
-  const layerFactors: Record<number, number> = {
-    1: 0.5,
-    2: 0.8,
-    4: 1.5,
-    6: 2.5,
-    8: 4.0,
-    10: 6.0,
+  if (layers === 1 || layers === 2) {
+    const layerKey = layers.toString();
+    const layerRates = (rates as any)[layerKey];
+
+    if (layerRates && Array.isArray(layerRates)) {
+      // Find the closest SQ.MTR range from the rate sheet
+      // Using a small epsilon for floating point comparison
+      const rateRow = layerRates.find(r => r.sqmtr >= (sqmtr - 0.00001)) || layerRates[layerRates.length - 1];
+      
+      if (rateRow) {
+        // Try to find the exact build time, fallback to '7 WD'
+        baseSubTotal = rateRow[buildTime] || rateRow['7 WD'] || 0;
+      }
+    }
+  } else {
+    // Current placeholder logic for 4+ layers
+    const area = width * height
+    const layerFactors: Record<number, number> = { 4: 1.5, 6: 2.5, 8: 4.0, 10: 6.0 }
+    const baseFactor = layerFactors[layers] || 10.0
+    let areaPrice = (area / 100) * baseFactor
+    baseSubTotal = areaPrice * quantity
+    nreCost = 1500
   }
 
-  const baseFactor = layerFactors[layers] || 10.0
-  let areaPrice = (area / 100) * baseFactor // Price per unit based on area
-
-  // Finish premium
-  if (finish === 'ENIG') areaPrice *= 1.4
-  if (finish === 'Lead Free HASL') areaPrice *= 1.1
-
-  // Copper thickness premium
-  if (copperThickness === '2 oz (70 um)') areaPrice *= 1.3
-  if (copperThickness === '3 oz (105 um)') areaPrice *= 1.6
-
-  // Quantity discount
-  let qtyFactor = 1.0
-  if (quantity > 10) qtyFactor = 0.9
-  if (quantity > 50) qtyFactor = 0.8
-  if (quantity > 100) qtyFactor = 0.7
-
-  const unitPrice = areaPrice * qtyFactor
-  const subTotal = unitPrice * quantity
+  // Adjustments for non-standard specs (Baselines: FR4, 1.6mm, 35um, HASL)
+  let adjustment = 1.0
+  if (finish === 'ENIG') adjustment += 0.4
+  if (finish === 'Lead Free HASL') adjustment += 0.1
   
-  // NRE / Setup Fee
-  const nreCost = layers > 2 ? 1500 : 0 // Free tooling for 1-2 layers usually
+  if (copperThickness === '2 oz (70 um)' || copperThickness === '70') adjustment += 0.3
+  if (copperThickness === '3 oz (105 um)' || copperThickness === '105') adjustment += 0.6
 
-  // Build time multiplier
-  let buildTimeMultiplier = 1.0
-  if (buildTime === '4-5 Days') buildTimeMultiplier = 1.2
-  if (buildTime === '2-3 Days') buildTimeMultiplier = 1.5
-  if (buildTime === '1-2 Days') buildTimeMultiplier = 2.0
-
-  const adjustedSubTotal = (subTotal + nreCost) * buildTimeMultiplier
-  const gst = adjustedSubTotal * 0.18
+  const subTotal = (baseSubTotal + nreCost) * adjustment
+  const gst = subTotal * 0.18
   const shippingCost = specs.shippingMethod === 'DTDC Plus' ? 250 : 0
 
   return {
-    unitPrice: Number(unitPrice.toFixed(2)),
+    unitPrice: Number((subTotal / quantity).toFixed(2)),
     nreCost,
-    subTotal: Number(adjustedSubTotal.toFixed(2)),
+    subTotal: Number(subTotal.toFixed(2)),
     gst: Number(gst.toFixed(2)),
     shippingCost,
-    totalCost: Number((adjustedSubTotal + gst + shippingCost).toFixed(2)),
+    totalCost: Number((subTotal + gst + shippingCost).toFixed(2)),
     currency: 'INR'
   }
 }

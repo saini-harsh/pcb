@@ -584,6 +584,81 @@ export default buildConfig({
         },
       ],
     },
+    {
+      slug: 'fabrication-rates',
+      admin: {
+        useAsTitle: 'itemNo',
+      },
+      access: {
+        read: () => true,
+        create: ({ req }) => Boolean(req.user),
+        update: ({ req }) => Boolean(req.user),
+        delete: ({ req }) => Boolean(req.user),
+      },
+      admin: {
+        useAsTitle: 'itemNo',
+        defaultColumns: ['itemNo', 'layers', 'rangeStart', 'price10WD_PG'],
+      },
+      fields: [
+        {
+          name: 'layers',
+          type: 'number',
+          index: true,
+          defaultValue: 2,
+          required: true,
+          admin: {
+            description: 'Number of layers (1, 2, 4, 6, or 8)',
+          },
+        },
+        {
+          name: 'itemNo',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'rangeStart',
+          type: 'number',
+          index: true,
+          required: true,
+          admin: {
+            description: 'Calculated SQ.MTR (Total area)',
+          },
+        },
+        {
+          name: 'price1WD',
+          type: 'number',
+          required: false,
+          admin: {
+            description: 'Only for 1 layer boards',
+          },
+        },
+        {
+          name: 'price3WD',
+          type: 'number',
+          required: false, // Changed to false to allow only 10WD for 4 layers if needed
+        },
+        {
+          name: 'price5WD',
+          type: 'number',
+          required: false, // Changed to false
+        },
+        {
+          name: 'price7WD',
+          type: 'number',
+          required: false, // Changed to false
+        },
+        {
+          name: 'price10WD',
+          type: 'number',
+          required: false,
+        },
+        {
+          name: 'price10WD_PG',
+          type: 'number',
+          required: false,
+        },
+      ],
+    },
   ],
   editor: lexicalEditor({}),
   secret: process.env.PAYLOAD_SECRET || 'a_very_secure_secret_for_pcb_globe_123',
@@ -596,5 +671,5 @@ export default buildConfig({
     },
   }),
   sharp,
-  debug: true,
+  debug: false,
 })
