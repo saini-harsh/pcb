@@ -10,6 +10,12 @@ export type CartItem = {
   image: string;
   manufacturer?: string;
   description?: string;
+  specs?: any;
+  gerberFile?: {
+    id: string | number;
+    url: string;
+    filename: string;
+  };
 };
 
 type CartContextType = {

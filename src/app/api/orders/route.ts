@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import configPromise from '@/payload.config'
+import { getPayload } from '@/lib/get-payload'
 import { NextResponse } from 'next/server'
 import { getClerkUserFromRequest } from '@/lib/clerk-auth'
 import Razorpay from 'razorpay'
@@ -11,7 +10,7 @@ const razorpay = new Razorpay({
 
 export async function POST(req: Request) {
   try {
-    const payload = await getPayload({ config: configPromise })
+    const payload = await getPayload()
     const body = await req.json()
     const clerkUser = await getClerkUserFromRequest(req)
 
@@ -32,16 +31,16 @@ export async function POST(req: Request) {
     }
 
     const user = users.docs[0]
-    const { items, total, shippingAddress, billingAddress, projectName } = body
+    const { items, total, shippingAddress, billingAddress, projectName, gerberFile, specs } = body
 
     // 1. Create Razorpay Order
     const razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(total * 100), // amount in paise
-        currency: "INR",
-        receipt: `receipt_${Date.now()}`,
-        notes: {
-            projectName: projectName || "New Order"
-        }
+      amount: Math.round(total * 100), // amount in paise
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+      notes: {
+        projectName: projectName || "New Order"
+      }
     });
 
     // 2. Create the Payload order
@@ -56,14 +55,16 @@ export async function POST(req: Request) {
         shippingAddress,
         billingAddress,
         razorpayOrderId: razorpayOrder.id, // Link them
+        gerberFile,
+        fullSpecs: specs,
       },
     })
 
-    return NextResponse.json({ 
-        success: true, 
-        orderId: order.id, 
-        razorpayOrderId: razorpayOrder.id,
-        amount: razorpayOrder.amount 
+    return NextResponse.json({
+      success: true,
+      orderId: order.id,
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount
     })
   } catch (error: any) {
     console.error('[api/orders] error:', error)
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const payload = await getPayload({ config: configPromise })
+    const payload = await getPayload()
     const clerkUser = await getClerkUserFromRequest(req)
 
     if (!clerkUser) {

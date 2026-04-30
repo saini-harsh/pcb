@@ -5,7 +5,6 @@ import { Cpu, Zap, ShieldCheck, Globe, BarChart3, Clock, Box, ArrowRight } from 
 export default function Home() {
   const solutions = [
     { title: "Fabrication", icon: <Zap className="w-8 h-8" />, desc: "Top-tier PCB manufacturing from 1 to 32 layers with precision." },
-    { title: "Assembly", icon: <Cpu className="w-8 h-8" />, desc: "Turnkey PCBA including component sourcing and functional testing." },
     { title: "Components", icon: <Box className="w-8 h-8" />, desc: "Sourcing of authentic electronic components from global vendors." }
   ]
 

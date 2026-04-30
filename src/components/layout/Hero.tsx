@@ -3,18 +3,18 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Zap, ShieldCheck, Clock, FileSpreadsheet, Box, ArrowRight } from 'lucide-react'
+import { ChevronRight, Zap, ShieldCheck, Clock, Box, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import AuthModal from '../auth/AuthModal'
-import AssemblyModal from '../modals/AssemblyModal'
+
 
 const Hero = () => {
-  const [activeTab, setActiveTab] = useState<'fabrication' | 'assembly' | 'products'>('fabrication')
+  const [activeTab, setActiveTab] = useState<'fabrication' | 'products'>('fabrication')
   const { userId } = useAuth()
   const router = useRouter()
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [assemblyModalOpen, setAssemblyModalOpen] = useState(false)
+
   const [fabData, setFabData] = useState({
     layers: '2',
     quantity: 5,
@@ -22,9 +22,7 @@ const Hero = () => {
     height: 40
   })
 
-  const handleCreateProject = () => {
-    setAssemblyModalOpen(true)
-  }
+
 
   return (
     <>
@@ -119,7 +117,7 @@ const Hero = () => {
 
                 <div className="p-4 sm:p-6 border-b border-gray-100">
                   <div className="flex p-1.5 bg-gray-50/80 rounded-2xl border border-gray-100 relative">
-                    {['fabrication', 'assembly', 'products'].map((tab) => (
+                    {['fabrication', 'products'].map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
@@ -208,33 +206,7 @@ const Hero = () => {
                       </motion.div>
                     )}
 
-                    {activeTab === 'assembly' && (
-                      <motion.div
-                        key="assembly"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.3 }}
-                        className="flex flex-col items-center justify-center text-center py-6 h-full mt-4"
-                      >
-                        <div className="w-24 h-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center text-emerald-500 shadow-inner border border-emerald-100 mb-8 transform -rotate-6 hover:rotate-0 transition-transform">
-                          <FileSpreadsheet className="w-10 h-10" />
-                        </div>
-                        <div className="space-y-4 mb-10 px-4">
-                          <h4 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">Upload BOM for Assembly</h4>
-                          <p className="text-sm font-medium text-gray-500">Fast tracking components from global vendors to simplify your next assembly run.</p>
-                        </div>
-                        <button
-                          onClick={handleCreateProject}
-                          className="w-full mt-6 py-5 bg-gray-900 text-white rounded-[24px] font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-gray-900/20 flex items-center justify-center gap-3 group hover:scale-[1.02] active:scale-95"
-                        >
-                          Create Project
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </div>
-                        </button>
-                      </motion.div>
-                    )}
+
 
                     {activeTab === 'products' && (
                       <motion.div
@@ -281,10 +253,7 @@ const Hero = () => {
         initialMode="sign-in"
       />
 
-      <AssemblyModal
-        isOpen={assemblyModalOpen}
-        onClose={() => setAssemblyModalOpen(false)}
-      />
+
     </>
   )
 }

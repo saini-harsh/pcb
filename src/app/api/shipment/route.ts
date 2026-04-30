@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import configPromise from '@/payload.config'
+import { getPayload } from '@/lib/get-payload'
 import { NextResponse } from 'next/server'
 import { sendShipmentEmail } from '@/lib/email'
 import axios from 'axios'
@@ -12,7 +11,7 @@ function sanitizePhone(phone: string): string {
 
 export async function POST(req: Request) {
   try {
-    const payload = await getPayload({ config: configPromise })
+    const payload = await getPayload()
     const { orderId, method, trackingNumber, courierName } = await req.json()
 
     if (!orderId) {

@@ -20,7 +20,7 @@ const Footer = () => {
       title: 'Services',
       links: [
         { name: 'PCB Fabrication', href: '/services/pcb-fabrication' },
-        { name: 'PCB Assembly', href: '/services/pcb-assembly' },
+
         { name: 'PCB Enclosures', href: '/services/pcb-enclosures' },
         { name: 'Contract Manufacturing', href: '/services/pcba-contract' },
         { name: 'PCB Design', href: '/services/pcb-design' },

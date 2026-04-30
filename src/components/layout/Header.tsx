@@ -114,7 +114,7 @@ const Header = () => {
 
   const services = [
     { title: 'PCB Fabrication', sub: 'FR4, Aluminum, Rogers, and HDI manufacturing.', icon: <Box className="w-5 h-5" />, href: '/services/pcb-fabrication' },
-    { title: 'Assembly', sub: 'Quality Assured Assembly', icon: <Cpu className="w-5 h-5" />, href: '/services/pcb-assembly' },
+
     { title: 'Components', sub: 'Easy Access To Components', icon: <HardDrive className="w-5 h-5" />, href: '/components' },
     { title: 'Made in India Products', sub: 'Cheap Pricing, Faster Delivery', icon: <Globe className="w-5 h-5" />, href: '/services/made-in-india' },
     { title: 'Enclosures', sub: 'Explore And Shop Premium Enclosures', icon: <Box className="w-5 h-5 text-blue-500" />, href: '/services/pcb-enclosures' },
@@ -484,7 +484,7 @@ const Header = () => {
             <div className="pt-4 border-t border-gray-50">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</p>
               <div className="flex flex-wrap gap-2">
-                {['FR4 High TG', 'ENIG Finish', 'Assembly', 'MCU Samples', 'IoT Boards'].map((tag) => (
+                {['FR4 High TG', 'ENIG Finish', 'MCU Samples', 'IoT Boards'].map((tag) => (
                   <button key={tag} className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-600 transition-colors">
                     {tag}
                   </button>

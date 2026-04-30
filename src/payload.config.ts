@@ -210,6 +210,49 @@ export default buildConfig({
       ],
     },
     {
+      slug: 'projects',
+      admin: {
+        useAsTitle: 'name',
+      },
+      access: {
+        read: () => true,
+        create: () => true,
+        update: () => true,
+        delete: () => true,
+      },
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'user',
+          type: 'relationship',
+          relationTo: 'users',
+        },
+        {
+          name: 'specs',
+          type: 'json',
+        },
+        {
+          name: 'gerberFile',
+          type: 'relationship',
+          relationTo: 'media',
+        },
+        {
+          name: 'status',
+          type: 'select',
+          defaultValue: 'draft',
+          options: [
+            { label: 'Draft', value: 'draft' },
+            { label: 'Quoted', value: 'quoted' },
+            { label: 'Ordered', value: 'ordered' },
+          ],
+        },
+      ],
+    },
+    {
       slug: 'orders',
       admin: {
         useAsTitle: 'projectName',
@@ -305,6 +348,10 @@ export default buildConfig({
           ],
         },
         {
+          name: 'fullSpecs',
+          type: 'json',
+        },
+        {
           name: 'gerberFile',
           type: 'relationship',
           relationTo: 'media',
@@ -315,7 +362,7 @@ export default buildConfig({
           admin: {
             position: 'sidebar',
             components: {
-               Field: '@/components/admin/ShipmentButtons#ShipmentButtons',
+              Field: '@/components/admin/ShipmentButtons#ShipmentButtons',
             }
           }
         },
@@ -547,12 +594,12 @@ export default buildConfig({
             description: 'Specific details for PCB fabrication products (optional)',
           },
           fields: [
-            { name: 'boardType', type: 'select', options: [{ label: 'Rigid', value: 'rigid'}, { label: 'Flex', value: 'flex'}, { label: 'Rigid-Flex', value: 'rigid-flex' }] },
+            { name: 'boardType', type: 'select', options: [{ label: 'Rigid', value: 'rigid' }, { label: 'Flex', value: 'flex' }, { label: 'Rigid-Flex', value: 'rigid-flex' }] },
             { name: 'layers', type: 'number' },
             { name: 'material', type: 'text' },
             { name: 'thickness', type: 'text' },
             { name: 'copperWeight', type: 'text' },
-            { name: 'surfaceFinish', type: 'select', options: [{ label: 'HASL', value: 'hasl'}, { label: 'HASL Lead Free', value: 'hasl-lf'}, { label: 'ENIG', value: 'enig'}, { label: 'OSP', value: 'osp'}] },
+            { name: 'surfaceFinish', type: 'select', options: [{ label: 'HASL', value: 'hasl' }, { label: 'HASL Lead Free', value: 'hasl-lf' }, { label: 'ENIG', value: 'enig' }, { label: 'OSP', value: 'osp' }] },
             { name: 'soldermaskColor', type: 'text' },
             { name: 'silkscreenColor', type: 'text' },
           ]

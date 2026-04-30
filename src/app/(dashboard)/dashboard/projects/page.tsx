@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Search, Filter, Plus, ArrowRight, Cpu, Settings, PackageOpen } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -9,27 +10,34 @@ import { AnimatePresence } from "framer-motion";
 
 export default function ProjectsPage() {
   const { user } = useUser();
+  const router = useRouter();
   const { isLoaded, userId, getToken } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       if (!isLoaded || !userId) return;
       try {
         const token = await getToken();
-        const res = await fetch("/api/orders", {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        const json = await res.json();
-        if (json.success) {
-          setOrders(json.data || []);
-        }
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+        // Fetch Orders
+        const ordersRes = await fetch("/api/orders", { headers });
+        const ordersJson = await ordersRes.json();
+        if (ordersJson.success) setOrders(ordersJson.data || []);
+
+        // Fetch Projects
+        const projectsRes = await fetch("/api/projects", { headers });
+        const projectsJson = await projectsRes.json();
+        if (projectsJson.success) setProjects(projectsJson.data || []);
+
       } catch (e) {
-        console.error("Failed to load orders", e);
+        console.error("Failed to load data", e);
       }
     };
-    fetchOrders();
+    fetchData();
   }, [isLoaded, userId, getToken]);
 
   const statusCards = [
@@ -53,22 +61,30 @@ export default function ProjectsPage() {
     }
   ];
 
-  const recentProjects = orders.map((o) => {
-    const totalUnits = Array.isArray(o.items) 
-      ? o.items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) 
-      : 0;
-    
-    return {
+  const allProjects = [
+    ...orders.map((o) => ({
       id: o.id,
       name: o.projectName || "Component Order",
       pid: o.id,
       fabStatus: "N/A",
       asmStatus: "N/A",
       procStatus: String(o.status || "Processing").replace('_', ' ').toUpperCase(),
-      units: totalUnits,
+      units: Array.isArray(o.items) ? o.items.reduce((acc: any, i: any) => acc + (i.quantity || 0), 0) : 0,
       date: o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "Pending",
-    };
-  });
+      type: 'order'
+    })),
+    ...projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      pid: String(p.id).substring(0, 8).toUpperCase(),
+      fabStatus: "Quoted",
+      asmStatus: "N/A",
+      procStatus: "DRAFT",
+      units: 1,
+      date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Draft",
+      type: 'project'
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -175,25 +191,40 @@ export default function ProjectsPage() {
               </tr>
             </thead>
             <tbody>
-              {recentProjects.length === 0 ? (
+              {allProjects.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center font-bold text-gray-400 uppercase tracking-widest">
                     No orders or projects found
                   </td>
                 </tr>
               ) : (
-                recentProjects.map((project, idx) => (
-                  <tr key={project.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors group">
+                allProjects.map((project, idx) => (
+                  <tr 
+                    key={project.id} 
+                    onClick={() => router.push(`/dashboard/projects/${project.id}/quotation`)}
+                    className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors group cursor-pointer"
+                  >
                     <td className="py-5 px-4">
                       <div className="flex items-center gap-3">
                         <span className="text-gray-400 font-bold text-sm w-4">{idx + 1}</span>
-                        <span className="font-bold text-gray-900">{project.name}</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900">{project.name}</span>
+                          <span className={`text-[9px] font-black uppercase tracking-tighter ${project.type === 'order' ? 'text-blue-500' : 'text-orange-500'}`}>
+                            {project.type}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-5 px-4 font-semibold text-gray-600">{project.pid}</td>
+                    <td className="py-5 px-4 font-semibold text-gray-600 truncate max-w-[100px]">{project.pid}</td>
                     <td className="py-5 px-4"><span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">{project.fabStatus}</span></td>
                     <td className="py-5 px-4"><span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">{project.asmStatus}</span></td>
-                    <td className="py-5 px-4"><span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-bold">{project.procStatus}</span></td>
+                    <td className="py-5 px-4">
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                        project.procStatus === 'DRAFT' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-700'
+                      }`}>
+                        {project.procStatus}
+                      </span>
+                    </td>
                     <td className="py-5 px-4 text-center font-bold text-gray-900">{project.units}</td>
                     <td className="py-5 px-4 font-semibold text-gray-400">{project.date}</td>
                   </tr>

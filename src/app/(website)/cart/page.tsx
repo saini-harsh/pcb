@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
+import {
    ShoppingCart, AlertTriangle, Trash2
 } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
@@ -101,7 +101,9 @@ export default function CartPage() {
                   name: item.name,
                   quantity: item.quantity,
                   price: item.price,
-                  image: item.image
+                  image: item.image,
+                  specs: item.specs,
+                  gerberFile: item.gerberFile?.id
                })),
                total: cartTotal + (cartTotal * 0.18),
                shippingAddress: {
@@ -116,7 +118,9 @@ export default function CartPage() {
                   email: userDetails.email,
                   phone: userDetails.contactVal
                },
-               projectName: cart[0]?.name || "New Order"
+               projectName: cart[0]?.name || "New Order",
+               gerberFile: cart[0]?.gerberFile?.id,
+               fullSpecs: cart[0]?.specs
             })
          });
          const data = await res.json();
@@ -138,52 +142,52 @@ export default function CartPage() {
       const total = cartTotal + gst;
 
       const options = {
-         key: "rzp_test_SKKXmjhckTA1L8", 
+         key: "rzp_test_SKKXmjhckTA1L8",
          amount: Math.round(total * 100),
          currency: "INR",
          name: "PCB GLOBE",
          description: "Component Procurement Payment",
-         image: "https://pcbglobe.com/logo.png", 
+         image: "https://pcbglobe.com/logo.png",
          order_id: razorpayOrderId,
          notes: {
             payload_order_id: payloadOrderId
          },
          handler: async function (response: any) {
-             const token = await getToken();
-             const verifyRes = await fetch("/api/payments/verify", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_order_id: response.razorpay_order_id || "", 
-                    razorpay_signature: response.razorpay_signature || "",
-                    payload_order_id: payloadOrderId,
-                    amount: Math.round(total * 100)
-                })
-             });
-             
-             const verifyData = await verifyRes.json();
-             if (verifyData.success) {
-                 clearCart();
-                 alert("Payment successful and verified!");
-                 window.location.href = "/dashboard/projects"; 
-             } else {
-                 alert("Payment verification failed! Please contact support.");
-             }
+            const token = await getToken();
+            const verifyRes = await fetch("/api/payments/verify", {
+               method: "POST",
+               headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+               },
+               body: JSON.stringify({
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id || "",
+                  razorpay_signature: response.razorpay_signature || "",
+                  payload_order_id: payloadOrderId,
+                  amount: Math.round(total * 100)
+               })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+               clearCart();
+               alert("Payment successful and verified!");
+               window.location.href = "/dashboard/projects";
+            } else {
+               alert("Payment verification failed! Please contact support.");
+            }
          },
          prefill: {
-             name: userDetails.name,
-             email: userDetails.email,
-             contact: userDetails.contactVal
+            name: userDetails.name,
+            email: userDetails.email,
+            contact: userDetails.contactVal
          },
          theme: {
-             color: "#f97316" // primary orange
+            color: "#f97316" // primary orange
          }
       };
-      
+
       const rzp1 = new (window as any).Razorpay(options);
       rzp1.open();
    };
@@ -196,7 +200,7 @@ export default function CartPage() {
             </div>
             <h1 className="text-4xl font-black text-gray-900 tracking-tighter italic mb-4">Your cart is empty</h1>
             <p className="text-gray-500 font-bold mb-8 max-w-md">Looks like you haven't added any components to your project yet. Start exploring our inventory!</p>
-            <Link 
+            <Link
                href="/components"
                className="px-10 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all"
             >
@@ -211,10 +215,10 @@ export default function CartPage() {
 
    return (
       <div className="p-8 max-w-[1400px] mx-auto h-full min-h-[80vh] flex flex-col xl:flex-row gap-8 animate-in fade-in duration-500">
-         
+
          {/* Left Column (Cart Items) */}
          <div className="flex-1 flex flex-col gap-6">
-            
+
             {/* Warning Banner */}
             <div className="bg-orange-50/80 border border-orange-100 rounded-[24px] p-6 flex gap-4 text-orange-800 shadow-sm backdrop-blur-sm">
                <AlertTriangle className="w-6 h-6 shrink-0 text-orange-500 mt-1" />
@@ -245,7 +249,7 @@ export default function CartPage() {
             {/* Cart Categories */}
             <div className="bg-white rounded-[32px] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 hover:border-primary/20 transition-all group">
                <h2 className="text-xl font-black text-gray-900 italic tracking-tight mb-6">Component Procurement Projects</h2>
-               
+
                <div className="space-y-4">
                   {cart.map((item) => (
                      <div key={item.id} className="grid grid-cols-12 items-center bg-gray-50/50 rounded-[24px] p-6 border border-gray-100 hover:bg-primary/5 transition-colors group/item">
@@ -254,10 +258,24 @@ export default function CartPage() {
                               <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
                            </div>
                            <div className="flex flex-col gap-1">
-                              <h3 className="text-xl font-black text-gray-900">{item.name}</h3>
-                              {item.manufacturer && <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{item.manufacturer}</span>}
-                              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1 line-clamp-1">{item.description}</p>
-                           </div>
+                               <h3 className="text-xl font-black text-gray-900">{item.name}</h3>
+                               {item.manufacturer && <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{item.manufacturer}</span>}
+                               {item.specs ? (
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600 uppercase tracking-wider">{item.specs.layers} Layers</span>
+                                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600 uppercase tracking-wider">{item.specs.width}x{item.specs.height}mm</span>
+                                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600 uppercase tracking-wider">{item.specs.material}</span>
+                                  </div>
+                               ) : (
+                                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1 line-clamp-1">{item.description}</p>
+                               )}
+                               {item.gerberFile && (
+                                  <div className="flex items-center gap-1 mt-2 text-green-600 bg-green-50 w-fit px-2 py-1 rounded border border-green-100">
+                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                     <span className="text-[10px] font-bold uppercase tracking-wider">Gerber: {item.gerberFile.filename}</span>
+                                  </div>
+                               )}
+                            </div>
                         </div>
                         <div className="col-span-3 flex items-center justify-center gap-4">
                            <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold hover:border-primary transition-colors">-</button>
@@ -267,7 +285,7 @@ export default function CartPage() {
                         <div className="col-span-3 flex items-center justify-end gap-6">
                            <span className="text-2xl font-black text-gray-900 tracking-tighter italic">{formatINR(item.price * item.quantity)}</span>
                            <div className="flex flex-col xl:flex-row gap-2">
-                              <button 
+                              <button
                                  onClick={() => removeItem(item.id)}
                                  className="w-10 h-10 rounded-full border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-all bg-white shadow-sm"
                               >
@@ -286,7 +304,7 @@ export default function CartPage() {
          <div className="w-full xl:w-96 shrink-0 z-10">
             <div className="bg-white rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100 p-8 sticky top-10">
                <h2 className="text-2xl font-black text-gray-900 tracking-tighter italic text-center mb-8">Order Summary</h2>
-               
+
                {/* Stepper */}
                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-center mb-10 relative">
                   <div className="absolute top-1/2 left-0 w-full h-[2px] bg-gray-100 -z-10 -translate-y-1/2"></div>
@@ -363,7 +381,7 @@ export default function CartPage() {
                         <span className="text-gray-600">Discount</span>
                         <span>- ₹0</span>
                      </div>
-                     
+
                      <div className="border-t border-gray-200 pt-5 flex items-center justify-between">
                         <span className="text-base font-black text-gray-900">Total</span>
                         <span className="text-3xl font-black text-gray-900 tracking-tighter italic">{formatINR(finalTotal)}</span>
@@ -371,7 +389,7 @@ export default function CartPage() {
                   </div>
                )}
 
-               <button 
+               <button
                   onClick={handleProceed}
                   className="w-full py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center"
                >

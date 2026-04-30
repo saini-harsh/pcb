@@ -1,12 +1,11 @@
-import { getPayload } from 'payload'
-import configPromise from '@/payload.config'
+import { getPayload } from '@/lib/get-payload'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { sendPaymentSuccessEmail, sendOrderConfirmationEmail } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
-    const payload = await getPayload({ config: configPromise })
+    const payload = await getPayload()
     const body = await req.json()
     const { 
       razorpay_payment_id, 

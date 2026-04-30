@@ -1,15 +1,26 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { calculatePrice, PCBSpecs, PricingResult } from '@/lib/pricing'
 import Image from 'next/image'
-import { Upload, ChevronDown, Check, X, Info, HelpCircle } from 'lucide-react'
+import { Upload, ChevronDown, Check, X, Info, HelpCircle, Loader2, FileCheck } from 'lucide-react'
 import axios from 'axios'
+import { useCart } from '@/context/CartContext'
+import { useAuth } from '@clerk/nextjs'
+import { renderGerberPreview, GerberPreview } from '@/lib/gerber-renderer'
 
 const QuoteFormContent = () => {
     const searchParams = useSearchParams()
+    const router = useRouter()
+    const { addItem } = useCart()
+    const { getToken } = useAuth()
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [previews, setPreviews] = useState<GerberPreview | null>(null)
+    const [renderingPreview, setRenderingPreview] = useState(false)
+    const [previewSide, setPreviewSide] = useState<'top' | 'bottom'>('top')
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null)
 
     const getOneLayerOptions = (material: string) => {
         switch (material) {
@@ -72,6 +83,9 @@ const QuoteFormContent = () => {
     const [multiQuotes, setMultiQuotes] = useState<any>(null)
     const [loading, setLoading] = useState(false)
     const [showBulkExport, setShowBulkExport] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const [uploadedFile, setUploadedFile] = useState<{ id: string, url: string, filename: string } | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
     const sqmtr = (specs.width * specs.height * specs.quantity) / 1000000
 
@@ -218,6 +232,98 @@ const QuoteFormContent = () => {
             </div>
         </div>
     )
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        const ext = file.name.split('.').pop()?.toLowerCase()
+        if (ext !== 'zip' && ext !== 'rar') {
+            setError('Please upload only .zip or .rar files.')
+            return
+        }
+
+        setUploading(true)
+        setError(null)
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+            const response = await axios.post('/api/media/upload-gerber', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                timeout: 60000,
+            })
+
+            if (response.data.success) {
+                setUploadedFile({
+                    id: response.data.mediaId,
+                    url: response.data.url,
+                    filename: response.data.filename
+                })
+
+                // Trigger Gerber Rendering
+                setRenderingPreview(true)
+                try {
+                    const result = await renderGerberPreview(file, specs.solderMask?.toLowerCase())
+                    setPreviews(result)
+                } catch (renderErr) {
+                    console.error('Gerber rendering failed:', renderErr)
+                } finally {
+                    setRenderingPreview(false)
+                }
+            } else {
+                setError('Upload failed. Please try again.')
+            }
+        } catch (err: any) {
+            console.error('Upload error:', err)
+            setError(err.response?.data?.error || 'Failed to upload Gerber file.')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    const handleAddToCart = async () => {
+        if (!pricing) return
+
+        if (!uploadedFile) {
+            setError('Please upload your Gerber files before adding to cart.')
+            const uploadSection = document.getElementById('gerber-upload')
+            uploadSection?.scrollIntoView({ behavior: 'smooth' })
+            return
+        }
+
+        setLoading(true)
+        try {
+            const token = await getToken()
+            // 1. Save as a Project in DB
+            const projectResponse = await axios.post('/api/projects', {
+                name: specs.pcbName || 'Custom PCB',
+                specs: { ...specs, pricing },
+                gerberFileId: uploadedFile.id
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            if (projectResponse.data.success) {
+                // No longer adding to cart context
+                // addItem(cartItem)
+                router.push('/dashboard/projects')
+            } else {
+                setError('Failed to create project. Please try again.')
+            }
+        } catch (err: any) {
+            console.error('Add to cart error:', err)
+            setError('Failed to save project. Are you logged in?')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -484,21 +590,167 @@ const QuoteFormContent = () => {
                         </div>
 
                         {/* Upload Gerber Files */}
-                        <div className="space-y-4">
+                        <div className="space-y-4" id="gerber-upload">
                             <label className="text-sm font-semibold text-gray-600">Upload Gerber Files</label>
-                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                            
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                className="hidden" 
+                                accept=".zip,.rar"
+                                onChange={handleFileUpload}
+                            />
+
+                            <div 
+                                onClick={() => !uploading && fileInputRef.current?.click()}
+                                className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer group ${
+                                    uploadedFile 
+                                    ? 'border-green-200 bg-green-50/30' 
+                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                                } ${uploading ? 'opacity-50 cursor-wait' : ''}`}
+                            >
                                 <div className="flex flex-col items-center">
-                                    <div className="w-16 h-16 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                        <Upload className="w-8 h-8 text-[#FF6B35]" />
+                                    <div className={`w-16 h-16 rounded-lg shadow-sm flex items-center justify-center mb-4 transition-transform ${
+                                        uploadedFile ? 'bg-green-100' : 'bg-white group-hover:scale-110'
+                                    }`}>
+                                        {uploading ? (
+                                            <Loader2 className="w-8 h-8 text-[#FF6B35] animate-spin" />
+                                        ) : uploadedFile ? (
+                                            <FileCheck className="w-8 h-8 text-green-600" />
+                                        ) : (
+                                            <Upload className="w-8 h-8 text-[#FF6B35]" />
+                                        )}
                                     </div>
-                                    <h3 className="text-gray-700 font-bold mb-1">Drag & drop your Gerber files here or click to browse</h3>
-                                    <p className="text-gray-400 text-sm">Supported formats: .zip, .rar</p>
+                                    
+                                    {uploadedFile ? (
+                                        <div className="space-y-1">
+                                            <h3 className="text-green-700 font-bold">File Uploaded Successfully!</h3>
+                                            <p className="text-green-600 text-sm font-medium">{uploadedFile.filename}</p>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setUploadedFile(null);
+                                                    setPreviews(null);
+                                                }}
+                                                className="text-xs text-red-500 hover:underline mt-2"
+                                            >
+                                                Remove and upload different file
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <h3 className="text-gray-700 font-bold mb-1">
+                                                {uploading ? 'Uploading...' : 'Drag & drop your Gerber files here or click to browse'}
+                                            </h3>
+                                            <p className="text-gray-400 text-sm">Supported formats: .zip, .rar</p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
+
+                            {error && (
+                                <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
+                                    <Info size={16} />
+                                    <span>{error}</span>
+                                </div>
+                            )}
+
+                            {/* Gerber Preview Section */}
+                            <AnimatePresence>
+                                {(renderingPreview || previews) && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="mt-6 p-6 bg-white border border-gray-100 rounded-3xl shadow-sm"
+                                    >
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                                                    <FileCheck className="w-4 h-4 text-orange-500" />
+                                                </div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">PCB Preview</h3>
+                                            </div>
+                                        </div>
+
+                                        {renderingPreview ? (
+                                            <div className="aspect-[4/3] flex flex-col items-center justify-center gap-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                                                <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+                                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Generating PCB Render...</p>
+                                            </div>
+                                        ) : previews ? (
+                                            <div className="space-y-10">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                                    {/* Front View */}
+                                                    <div className="space-y-6">
+                                                        <div className="text-center">
+                                                            <h4 className="text-xl font-black text-gray-800 tracking-tight">Front View</h4>
+                                                        </div>
+                                                        <div 
+                                                            onClick={() => setZoomedImage(previews.top)}
+                                                            className="aspect-square bg-[#f8fafc] rounded-3xl p-10 flex items-center justify-center overflow-hidden border border-gray-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] group relative cursor-zoom-in hover:border-orange-300 hover:shadow-2xl hover:shadow-orange-100 transition-all duration-500 [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
+                                                        >
+                                                            {previews.top ? (
+                                                                <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: previews.top }} />
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2 text-gray-300">
+                                                                    <X className="w-8 h-8 opacity-20" />
+                                                                    <span className="text-[10px] font-bold uppercase tracking-widest">No Top View Data</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {/* Back View */}
+                                                    <div className="space-y-6">
+                                                        <div className="text-center">
+                                                            <h4 className="text-xl font-black text-gray-800 tracking-tight">Back View</h4>
+                                                        </div>
+                                                        <div 
+                                                            onClick={() => setZoomedImage(previews.bottom)}
+                                                            className="aspect-square bg-[#f8fafc] rounded-3xl p-10 flex items-center justify-center overflow-hidden border border-gray-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] group relative cursor-zoom-in hover:border-orange-300 hover:shadow-2xl hover:shadow-orange-100 transition-all duration-500 [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
+                                                        >
+                                                            {previews.bottom ? (
+                                                                <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: previews.bottom }} />
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2 text-gray-300">
+                                                                    <X className="w-8 h-8 opacity-20" />
+                                                                    <span className="text-[10px] font-bold uppercase tracking-widest">No Bottom View Data</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-8 space-y-4 border-t border-gray-50">
+                                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                        <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                                                            <span className="font-bold text-gray-700">Noted:</span> The image is for reference only. PCB fabrication will be based on your provided Gerber file.
+                                                        </p>
+                                                        <p className="text-[11px] text-[#28a745] font-bold mt-2 flex items-center gap-2">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-[#28a745] animate-pulse" />
+                                                            Your Gerber file has been uploaded. You may now proceed with the details provided below.
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 items-center">
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mr-4">Layers Detected</span>
+                                                        {previews.layers.map((l, i) => (
+                                                            <span key={i} className="px-3 py-1.5 bg-white text-[10px] font-black text-gray-600 rounded-lg border border-gray-100 shadow-sm uppercase tracking-wider">{l.filename}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Calculate Price Button */}
-                        <button className="w-full py-4 bg-[#28a745] hover:bg-[#218838] text-white font-bold rounded-md shadow-md transition-all uppercase tracking-wide">
+                        <button 
+                            disabled={uploading}
+                            className={`w-full py-4 text-white font-bold rounded-md shadow-md transition-all uppercase tracking-wide ${
+                                uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#28a745] hover:bg-[#218838]'
+                            }`}
+                        >
                             Calculate Price
                         </button>
                     </div>
@@ -525,7 +777,7 @@ const QuoteFormContent = () => {
                                                 onClick={() => isAvailable && updateSpec('buildTime', time)}
                                                 className={`py-1.5 px-1 text-[9px] font-bold rounded transition-all ${specs.buildTime === time
                                                     ? 'bg-[#FF6B35] text-white shadow-sm'
-                                                    : isAvailable 
+                                                    : isAvailable
                                                         ? 'text-gray-500 hover:bg-gray-200'
                                                         : 'text-gray-300 cursor-not-allowed'
                                                     }`}
@@ -561,8 +813,12 @@ const QuoteFormContent = () => {
                                 Quotation
                             </button>
 
-                            <button className="w-full py-3 bg-[#28a745] hover:bg-[#218838] text-white font-bold rounded-md shadow-sm transition-all">
-                                Add to Cart
+                            <button 
+                                onClick={handleAddToCart}
+                                disabled={loading}
+                                className={`w-full py-3 bg-[#FF6B35] hover:bg-[#e85a20] text-white font-bold rounded-md shadow-sm transition-all ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                                {loading ? 'Saving...' : 'Save Project'}
                             </button>
 
                             <div className="space-y-2 pt-4 border-t border-gray-100">
@@ -605,6 +861,29 @@ const QuoteFormContent = () => {
                     </div>
                 </div>
             </div>
+            {/* Zoom Modal */}
+            <AnimatePresence>
+                {zoomedImage && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setZoomedImage(null)}
+                        className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-20 cursor-zoom-out"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="w-full h-full flex items-center justify-center [&>svg]:w-auto [&>svg]:h-auto [&>svg]:max-w-full [&>svg]:max-h-full"
+                            dangerouslySetInnerHTML={{ __html: zoomedImage }}
+                        />
+                        <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
+                            <X size={32} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
