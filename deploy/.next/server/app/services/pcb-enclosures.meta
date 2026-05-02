@@ -1,0 +1,7 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "4294967294",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(website)/layout,_N_T_/(website)/services/layout,_N_T_/(website)/services/pcb-enclosures/layout,_N_T_/(website)/services/pcb-enclosures/page,_N_T_/services/pcb-enclosures"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "pcb",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^7.0.7",
+    "@payloadcms/db-sqlite": "^3.80.0",
+    "@payloadcms/next": "^3.80.0",
+    "@payloadcms/richtext-lexical": "^3.80.0",
+    "@tanstack/react-query": "^5.95.2",
+    "@types/nodemailer": "^8.0.0",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "cross-env": "^10.1.0",
+    "framer-motion": "^12.38.0",
+    "gerber-to-svg": "^4.2.8",
+    "graphql": "^16.13.2",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.6.0",
+    "next": "15.1.0",
+    "nodemailer": "^8.0.5",
+    "payload": "^3.80.0",
+    "pcb-stackup": "^4.2.8",
+    "razorpay": "^2.9.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "sharp": "^0.34.5",
+    "svix": "^1.89.0",
+    "tailwind-merge": "^3.5.0",
+    "whats-that-gerber": "^4.2.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
